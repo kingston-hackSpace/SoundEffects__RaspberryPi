@@ -94,12 +94,28 @@ print("Min value:", data.min(), "Max value:", data.max())
 Add a simple distortion effect:
 
 ```
+import soundfile as sf
+import sounddevice as sd
 import numpy as np
 
+# Load WAV
+data, samplerate = sf.read("audio.wav", dtype="float32")
+
+print("Data shape:", data.shape)
+print("Data type:", data.dtype)
+print("Min value:", data.min(), "Max value:", data.max())
+
+# Bitcrush function
+def bitcrush(audio, bits=6):
+    levels = 2 ** bits
+    return np.round(audio * levels) / levels
+
+# Apply effects
+crushed_audio = bitcrush(data, bits=4)
 gain = 4.0
-distorted = np.clip(data * gain, -1.0, 1.0)
+processed_audio = np.clip(crushed_audio * gain, -1.0, 1.0)
 
-sd.play(distorted, samplerate)
+# Play audio
+sd.play(processed_audio, samplerate)
 sd.wait()
-
 ```
