@@ -119,3 +119,40 @@ processed_audio = np.clip(crushed_audio * gain, -1.0, 1.0)
 sd.play(processed_audio, samplerate)
 sd.wait()
 ```
+
+Looping the noise:
+
+```
+import soundfile as sf
+import sounddevice as sd
+import numpy as np
+import time
+
+# Load WAV
+data, samplerate = sf.read("audio.wav", dtype="float32")
+
+# Noise parameters
+noise_amount = 0.05
+
+# Loop forever
+while True:
+    # Play clean audio
+    print("Playing clean audio...")
+    sd.play(data, samplerate)
+    sd.wait()
+    
+    # Wait 10 seconds before adding noise
+    print("Waiting 10 seconds before noisy audio...")
+    time.sleep(10)
+
+    # Play noisy audio
+    noisy_audio = data + np.random.randn(*data.shape) * noise_amount
+    noisy_audio = np.clip(noisy_audio, -1.0, 1.0)
+    print("Playing noisy audio...")
+    sd.play(noisy_audio, samplerate)
+    sd.wait()
+
+    # Wait 10 seconds before returning to clean
+    print("Waiting 10 seconds before clean audio...")
+    time.sleep(10)
+```
