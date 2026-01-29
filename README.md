@@ -126,33 +126,51 @@ Looping the noise:
 import soundfile as sf
 import sounddevice as sd
 import numpy as np
-import time
 
 # Load WAV
-data, samplerate = sf.read("audio.wav", dtype="float32")
+data, sr = sf.read("audio.wav", dtype="float32")
+data = data.copy()  # make sure we can modify
 
-# Noise parameters
+chunk_size = 1024  # frames per callback
 noise_amount = 0.05
 
-# Loop forever
-while True:
-    # Play clean audio
-    print("Playing clean audio...")
-    sd.play(data, samplerate)
-    sd.wait()
-    
-    # Wait 10 seconds before adding noise
-    print("Waiting 10 seconds before noisy audio...")
-    time.sleep(10)
+# Number of frames per 10-second segment
+frames_per_10s = sr * 10
 
-    # Play noisy audio
-    noisy_audio = data + np.random.randn(*data.shape) * noise_amount
-    noisy_audio = np.clip(noisy_audio, -1.0, 1.0)
-    print("Playing noisy audio...")
-    sd.play(noisy_audio, samplerate)
-    sd.wait()
+# Callback function
+def callback(outdata, frames, time, status):
+    global start_frame
+    if status:
+        print(status)
 
-    # Wait 10 seconds before returning to clean
-    print("Waiting 10 seconds before clean audio...")
-    time.sleep(10)
+    end_frame = start_frame + frames
+    chunk = data[start_frame:end_frame]
+
+    # Repeat audio if we reach the end
+    if len(chunk) < frames:
+        chunk = np.pad(chunk, ((0, frames - len(chunk)), (0, 0)), mode='wrap')
+
+    # Add noise every 10 seconds
+    if (start_frame // frames_per_10s) % 2 == 1:
+        chunk = chunk + np.random.randn(*chunk.shape) * noise_amount
+        chunk = np.clip(chunk, -1.0, 1.0)
+
+    outdata[:] = chunk
+    start_frame += frames
+
+# Start at frame 0
+start_frame = 0
+
+# Start stream
+with sd.OutputStream(
+    samplerate=sr,
+    channels=data.shape[1] if data.ndim > 1 else 1,
+    callback=callback,
+    blocksize=chunk_size,
+):
+    print("Playing audio with noise every 10 seconds. Press Ctrl+C to stop.")
+    while True:
+        pass
+
+
 ```
