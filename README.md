@@ -127,50 +127,62 @@ import soundfile as sf
 import sounddevice as sd
 import numpy as np
 
-# Load WAV
+# -------------------------------
+# LOAD AUDIO
+# -------------------------------
 data, sr = sf.read("audio.wav", dtype="float32")
-data = data.copy()  # make sure we can modify
+if data.ndim == 1:
+    data = data[:, np.newaxis]  # make stereo-compatible
 
-chunk_size = 1024  # frames per callback
-noise_amount = 0.05
+# -------------------------------
+# PARAMETERS
+# -------------------------------
+chunk_size = 4096            # frames per callback
+noise_amount_glitch = 0.01   # light glitch effect
+frames_per_5s = sr * 5       # 5-second interval
 
-# Number of frames per 10-second segment
-frames_per_10s = sr * 10
+# Precompute glitch noise for the whole track
+noise_glitch = np.random.randn(len(data), data.shape[1]) * noise_amount_glitch
 
-# Callback function
+# -------------------------------
+# CALLBACK FUNCTION
+# -------------------------------
+start_frame = 0  # global frame counter
+
 def callback(outdata, frames, time, status):
     global start_frame
     if status:
-        print(status)
+        print(status)  # comment out after debugging
 
     end_frame = start_frame + frames
     chunk = data[start_frame:end_frame]
 
-    # Repeat audio if we reach the end
+    # Wrap around if we reach the end
     if len(chunk) < frames:
         chunk = np.pad(chunk, ((0, frames - len(chunk)), (0, 0)), mode='wrap')
 
-    # Add noise every 10 seconds
-    if (start_frame // frames_per_10s) % 2 == 1:
-        chunk = chunk + np.random.randn(*chunk.shape) * noise_amount
-        chunk = np.clip(chunk, -1.0, 1.0)
+    # Apply glitch every 5 seconds
+    if (start_frame // frames_per_5s) % 2 == 1:
+        chunk += noise_glitch[start_frame:end_frame]
 
-    outdata[:] = chunk
+    # Clip to valid range
+    outdata[:] = np.clip(chunk, -1.0, 1.0)
+
     start_frame += frames
 
-# Start at frame 0
-start_frame = 0
-
-# Start stream
+# -------------------------------
+# START STREAM
+# -------------------------------
 with sd.OutputStream(
     samplerate=sr,
-    channels=data.shape[1] if data.ndim > 1 else 1,
-    callback=callback,
+    channels=data.shape[1],
     blocksize=chunk_size,
+    callback=callback,
 ):
-    print("Playing audio with noise every 10 seconds. Press Ctrl+C to stop.")
+    print("Playing audio with 5-second glitch intervals. Ctrl+C to stop.")
     while True:
         pass
+
 
 
 ```
