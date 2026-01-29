@@ -77,7 +77,7 @@ Adding sound effects.
 
 Add the following to play_audio.py to understand the audio numbers (raw data numbers). Any effects to apply will consist in manipulating these numbers.
 
-Open your play_audio.py
+Open your play_audio.py:
 
 ```
 nano play_audio.py
@@ -85,9 +85,20 @@ nano play_audio.py
 add the following:
 
 ```
+import soundfile as sf
+import sounddevice as sd
+
+# Load WAV file
+data, samplerate = sf.read("audio.wav", dtype="float32")
+
 print("Data shape:", data.shape)
 print("Data type:", data.dtype)
 print("Min value:", data.min(), "Max value:", data.max())
+
+# Play audio
+sd.play(data, samplerate)
+sd.wait()  # Wait until playback finishes
+
 ```
 
 ----
