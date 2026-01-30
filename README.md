@@ -25,7 +25,7 @@ Each time you open a terminal:
 
 ```
 cd ~/Desktop/soundEffects
-source adioenv/bin/activate
+source audioenv/bin/activate
 python play_audio.py
 ```
 When finished:
